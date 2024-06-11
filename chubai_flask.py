@@ -5,7 +5,7 @@ import random
 from collections import OrderedDict
 from flask import Flask, request, render_template, jsonify
 
-app = Flask(chub.ai_flaskapp)
+app = Flask(__name__)
 
 def fetch_character_data(url):
     headers = {

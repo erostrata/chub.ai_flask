@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Fetch Character Data</title>
+  </head>
+  <body>
+    <div>
+      <h1>Fetch Character Data</h1>
+      <form action="/fetch" method="post">
+        <label for="base_url">Enter Base URL:</label>
+        <input type="text" id="base_url" name="base_url" required>
+        <button type="submit">Fetch Data</button>
+      </form>
+    </div>
+    <div id="result"></div>
+    <script>
+      document.querySelector('form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const baseUrl = document.getElementById('base_url').value;
+        const response = await fetch('/fetch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ 'base_url': baseUrl })
+        });
+        const result = await response.json();
+        document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+      });
+    </script>
+  </body>
+</html>

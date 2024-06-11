@@ -30,9 +30,9 @@ def fetch_character_data(url):
     if response.status_code == 200:
         try:
             data = response.json()
-            personality = data['node']['definition']['personality']
-            description = data['node']['definition']['description']
-            first_message = data['node']['definition']['first_message']
+            personality = data['node']['definition']['personality'].replace('\r', '').replace('\n', '')
+            description = data['node']['definition']['description'].replace('\r', '').replace('\n', '')
+            first_message = data['node']['definition']['first_message'].replace('\r', '').replace('\n', '').replace('*', '')
 
             # Create the JSON prompt using OrderedDict to maintain the order
             prompt = OrderedDict([

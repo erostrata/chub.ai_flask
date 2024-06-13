@@ -2,8 +2,9 @@ import requests
 import json
 import urllib.parse
 import random
+import re
 from collections import OrderedDict
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, make_response
 
 app = Flask(__name__)
 
@@ -30,18 +31,34 @@ def fetch_character_data(url):
     if response.status_code == 200:
         try:
             data = response.json()
-            personality = data['node']['definition']['personality'].replace('\r', '').replace('\n', '')
-            description = data['node']['definition']['description'].replace('\r', '').replace('\n', '')
-            first_message = data['node']['definition']['first_message'].replace('\r', '').replace('\n', '').replace('*', '')
+            char_title = data['node']['definition']['project_name']
+            personality_raw = data['node']['definition']['personality']
+            first_message_raw = data['node']['definition']['first_message']
+            author = data['node']['fullPath']
+            description = data['node']['description']
 
-            # Create the JSON prompt using OrderedDict to maintain the order
+            def clean_data(d):
+                clean = re.sub(r'https?://\S+|!\[.*?\]\(.*?\)', '', d)
+                clean = clean.replace('\r', '').replace('\n', '').replace('{{user}}', 'user').replace('\u2019', "'").replace('\u2026', '...').replace('\u2014', '-').replace('{{char}}', char_title).replace('\\"', '"')
+                return clean
+
+            def replace_char_name_with_I(text, c):
+                variations = [c.split()[0], c]
+                pattern = re.compile("|".join(re.escape(variation) for variation in variations), re.IGNORECASE)
+                text = pattern.sub("I", text)
+                return text
+
+            personality = clean_data(personality_raw)
+            first_message = clean_data(first_message_raw).replace('*', '').replace('{{user}}', 'you')
+            first_message = replace_char_name_with_I(first_message, char_title)
+
             prompt = OrderedDict([
                 ("type", "duo-image"),
                 ("model", "gpt-4-0314"),
                 ("state", "LIVE"),
                 ("top_p", 0.8),
                 ("memory", 20),
-                ("prompt", description + personality),
+                ("prompt", 'You are now ' + char_title + '. ' + personality),
                 ("greeting", first_message),
                 ("temperature", 0.7)
             ])
@@ -68,14 +85,21 @@ def index():
 def fetch():
     base_url = request.form.get('base_url')
     if not base_url:
-        return jsonify({"error": "No base URL provided."}), 400
+        response = make_response(json.dumps({"error": "No base URL provided."}), 400)
+        response.headers['Content-Type'] = 'application/json'
+        return response
     
     api_url = construct_api_url(base_url)
     prompt = fetch_character_data(api_url)
     
     # Convert the OrderedDict to a JSON string with indentation
-    formatted_json = json.dumps(prompt, indent=2)
-    return formatted_json, 200, {'Content-Type': 'application/json'}
+    formatted_json = json.dumps(prompt, indent=2, ensure_ascii=False)
+    
+    # Create a response with the correct content type
+    response = make_response(formatted_json)
+    response.headers['Content-Type'] = 'application/json'
+    
+    return response
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)

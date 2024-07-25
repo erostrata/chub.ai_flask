@@ -3,21 +3,27 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Fetch Chub AI Character JSON</title>
+    <title>Fetch chub.ai Character Data</title>
+    <style>
+      #result {
+        white-space: pre-wrap; /* Preserve whitespace and wrap lines */
+        word-wrap: break-word; /* Break long words to fit the container */
+      }
+    </style>
   </head>
   <body>
     <div>
-      <h1>Fetch Chub AI Character JSON</h1>
-      <p>Please enter the URL of any character from chub.ai, and press enter to receive JSON.</p>
-      <form action="/fetch" method="post">
+      <h1>Fetch chub.ai Character Data</h1>
+      <p>Please enter the URL of any character from <a href="https://www.chub.ai/home" target = "blank" rel="noopener noreferrer">chub.ai</a>, and press enter to receive Author, Description, and JSON.</p>
+      <form id="fetch-form">
         <label for="base_url">Enter URL:</label>
         <input type="text" id="base_url" name="base_url" required>
         <button type="submit">Fetch Data</button>
       </form>
     </div>
-    <div id="result"></div>
+    <pre id="result"></pre>
     <script>
-      document.querySelector('form').addEventListener('submit', async function(event) {
+      document.querySelector('#fetch-form').addEventListener('submit', async function(event) {
         event.preventDefault();
         const baseUrl = document.getElementById('base_url').value;
         const response = await fetch('/fetch', {
@@ -25,8 +31,8 @@
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ 'base_url': baseUrl })
         });
-        const result = await response.json();
-        document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+        const result = await response.text();
+        document.getElementById('result').textContent = result;
       });
     </script>
   </body>

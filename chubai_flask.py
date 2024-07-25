@@ -1,10 +1,10 @@
+from flask import Flask, request, render_template, make_response
 import requests
 import json
 import urllib.parse
 import random
 import re
 from collections import OrderedDict
-from flask import Flask, request, render_template, make_response
 
 app = Flask(__name__)
 
@@ -35,7 +35,7 @@ def fetch_character_data(url):
             personality_raw = data['node']['definition']['personality']
             first_message_raw = data['node']['definition']['first_message']
             author = data['node']['fullPath']
-            description = data['node']['description']
+            description = data['node']['tagline']
 
             def clean_data(d):
                 clean = re.sub(r'https?://\S+|!\[.*?\]\(.*?\)', '', d)
@@ -54,7 +54,7 @@ def fetch_character_data(url):
 
             prompt = OrderedDict([
                 ("type", "duo-image"),
-                ("model", "gpt-4-0314"),
+                ("model", "gpt-4o-mini"),
                 ("state", "LIVE"),
                 ("top_p", 0.8),
                 ("memory", 20),
@@ -63,7 +63,16 @@ def fetch_character_data(url):
                 ("temperature", 0.7)
             ])
 
-            return prompt
+            json_output = json.dumps(prompt, indent=2, ensure_ascii=False)
+            json_output = re.sub(r'\\"', '', json_output)
+            author_clean = re.sub(r'/.*', '', author)
+
+            return {
+                'author': author_clean,
+                'description': description,
+                'json_output': json_output
+            }
+
         except json.JSONDecodeError:
             return {"error": "Failed to decode JSON response."}
     else:
@@ -92,12 +101,15 @@ def fetch():
     api_url = construct_api_url(base_url)
     prompt = fetch_character_data(api_url)
     
-    # Convert the OrderedDict to a JSON string with indentation
-    formatted_json = json.dumps(prompt, indent=2, ensure_ascii=False)
+    if 'error' in prompt:
+        response = make_response(json.dumps(prompt), 400)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    formatted_response = f"Author: {prompt['author']}\n\nDescription: {prompt['description']}\n\nJSON:\n{prompt['json_output']}"
     
-    # Create a response with the correct content type
-    response = make_response(formatted_json)
-    response.headers['Content-Type'] = 'application/json'
+    response = make_response(formatted_response)
+    response.headers['Content-Type'] = 'text/plain'
     
     return response
 
